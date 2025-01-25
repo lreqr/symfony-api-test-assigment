@@ -9,22 +9,16 @@ security:
                 property: email
 
     firewalls:
-        # Авторизация через JSON login
-        login:
-            pattern: ^/api/login
-            stateless: true
-            json_login:
-                check_path: /api/login
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
-
+        api_register:
+            pattern: ^/api/register
+            security: false
         # API маршруты защищены через JWT
         api:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
-            jwt: ~ # Настройка JWT аутентификации, предоставляемая LexikJWTAuthenticationBundle
+            jwt: ~
 
     access_control:
-        - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/api/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/api, roles: ROLE_USER }
