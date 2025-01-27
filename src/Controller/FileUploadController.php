@@ -70,7 +70,7 @@ final class FileUploadController extends AbstractController
         } catch (\Exception $e){
             $logger->error('File upload failed: ' . $e->getMessage());
             return new JsonResponse(
-                ['error' => 'An unexpected error occurred. Please try again later.'],
+                ['error' => 'An unexpected error occurred. Please try again later.', 'details' => $e->getMessage()],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
