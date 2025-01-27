@@ -10,3 +10,7 @@ upload_file:
     path: /api/upload
     controller: App\Controller\FileUploadController::upload
     methods: [POST]
+news_create:
+    path: /api/news
+    controller: App\Controller\NewsController::create
+    methods: [POST]
