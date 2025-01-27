@@ -19,39 +19,43 @@ final class NewsController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-        // Получаем данные формы
-        $title = $request->request->get('title');
-        $author = $request->request->get('author');
-        $content = $request->request->get('content');
-        $photo = $request->files->get('photo');
+        $isJsonRequest = $request->headers->get('Content-Type') === 'application/json';
 
-        // Валидация входных данных
-        if (!$title || !$author || !$content) {
+        if ($isJsonRequest) {
+            $data = json_decode($request->getContent(), true);
+        } else {
+            $data = [
+                'title' => $request->request->get('title'),
+                'author' => $request->request->get('author'),
+                'content' => $request->request->get('content'),
+                'photo' => $request->files->get('photo'),
+            ];
+        }
+
+        // Получаем данные формы/json
+        if (!isset($data['title'], $data['author'], $data['content'])) {
             $logger->error('Missing required fields in request data', [
-                'data' => [
-                    'title' => $title,
-                    'author' => $author,
-                    'content' => $content,
-                ],
+                'data' => $data,
+                'request_content' => $request->getContent(),
                 'request' => $request,
             ]);
             return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
 
         $news = new News();
-        $news->setTitle($title);
-        $news->setAuthor($author);
-        $news->setContent($content);
+        $news->setTitle($data['title']);
+        $news->setAuthor($data['author']);
+        $news->setContent($data['content']);
 
-        if ($photo && $photo instanceof UploadedFile) {
+        if (isset($data['photo']) && $data['photo'] instanceof UploadedFile) {
             $allowedMimeTypes = $this->getParameter('app.allowed_mime_types');
-            if (!in_array($photo->getClientMimeType(), $allowedMimeTypes)) {
+            if (!in_array($data['photo']->getClientMimeType(), $allowedMimeTypes)) {
                 return new JsonResponse(['error' => 'Invalid file type. Only JPEG and PNG are allowed.'], Response::HTTP_BAD_REQUEST);
             }
 
-            $photoPath = 'uploads/' . uniqid() . '.' . $photo->getClientOriginalExtension();
+            $photoPath = 'uploads/' . uniqid() . '.' . $data['photo']->getClientOriginalExtension();
 
-            $photo->move($this->getParameter('app.upload_directory'), $photoPath);
+            $data['photo']->move($this->getParameter('app.upload_directory'), $photoPath);
 
             $news->setPhoto($photoPath);
         }
