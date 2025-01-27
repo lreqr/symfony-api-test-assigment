@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\NewsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -14,8 +15,15 @@ use Psr\Log\LoggerInterface;
 
 final class NewsController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+
+    public function __construct(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
+    }
+
     #[Route('/api/news', name: 'news_create', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $entityManager, LoggerInterface $logger): JsonResponse
+    public function create(Request $request, LoggerInterface $logger): JsonResponse
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -61,8 +69,8 @@ final class NewsController extends AbstractController
         }
 
         // Сохраняем новость в базе данных
-        $entityManager->persist($news);
-        $entityManager->flush();
+        $this->entityManager->persist($news);
+        $this->entityManager->flush();
 
         return new JsonResponse([
             'id' => $news->getId(),
@@ -72,4 +80,22 @@ final class NewsController extends AbstractController
             'photo' => $news->getPhoto(),
         ], Response::HTTP_CREATED);
     }
+
+    #[Route('/api/news/{id}', name: 'news_delete', methods: ['DELETE'])]
+    public function delete(string $id, NewsRepository $newsRepository, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $news = $newsRepository->find($id);
+
+        if (!$news) {
+            return new JsonResponse(['error' => 'News not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $entityManager->remove($news);
+        $entityManager->flush();
+
+        return new JsonResponse(['status' => 'News deleted', 'id' => $id], Response::HTTP_OK);
+    }
+
 }

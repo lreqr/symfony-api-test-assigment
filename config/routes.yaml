@@ -14,3 +14,7 @@ news_create:
     path: /api/news
     controller: App\Controller\NewsController::create
     methods: [POST]
+news_delete:
+    path: /api/news/{id}
+    controller: App\Controller\NewsController::delete
+    methods: [DELETE]
