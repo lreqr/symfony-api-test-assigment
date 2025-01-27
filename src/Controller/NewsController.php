@@ -86,6 +86,12 @@ final class NewsController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
+        if (!ctype_digit($id)) {
+            return new JsonResponse(['error' => 'Invalid ID. It must be a positive integer.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $id = (int) $id;
+
         $news = $newsRepository->find($id);
 
         if (!$news) {
@@ -97,5 +103,44 @@ final class NewsController extends AbstractController
 
         return new JsonResponse(['status' => 'News deleted', 'id' => $id], Response::HTTP_OK);
     }
+
+    #[Route('/api/news', name: 'news_list', methods: ['GET'])]
+    public function list(Request $request, NewsRepository $newsRepository): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $page = max((int) $request->query->get('page', 1), 1); // Минимум 1
+        $limit = min(max((int) $request->query->get('limit', 10), 1), 100); // От 1 до 100
+        $filters = [
+            'author' => $request->query->get('author'),
+            'title' => $request->query->get('title'),
+        ];
+
+        [$newsList, $totalItems] = $newsRepository->findByFilters($filters, $page, $limit);
+
+        $pagination = [
+            'page' => $page,
+            'limit' => $limit,
+            'total_items' => $totalItems,
+            'total_pages' => (int) ceil($totalItems / $limit),
+        ];
+
+        $data = array_map(static function ($news) {
+            return [
+                'id' => $news->getId(),
+                'title' => $news->getTitle(),
+                'author' => $news->getAuthor(),
+                'content' => $news->getContent(),
+                'photo' => $news->getPhoto(),
+            ];
+        }, $newsList);
+
+        return new JsonResponse([
+            'filters' => $filters,
+            'pagination' => $pagination,
+            'data' => $data,
+        ], Response::HTTP_OK);
+    }
+
 
 }

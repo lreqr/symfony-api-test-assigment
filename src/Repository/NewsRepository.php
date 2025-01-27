@@ -40,4 +40,34 @@ class NewsRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    public function findByFilters(array $filters, int $page, int $limit): array
+    {
+        $queryBuilder = $this->createQueryBuilder('n');
+
+        if (!empty($filters['author'])) {
+            $queryBuilder->andWhere('n.author LIKE :author')
+                ->setParameter('author', '%' . $filters['author'] . '%');
+        }
+
+        if (!empty($filters['title'])) {
+            $queryBuilder->andWhere('n.title LIKE :title')
+                ->setParameter('title', '%' . $filters['title'] . '%');
+        }
+
+        $countQueryBuilder = clone $queryBuilder;
+        $totalItems = (int) $countQueryBuilder
+            ->select('COUNT(n.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $newsList = $queryBuilder
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return [$newsList, $totalItems];
+    }
+
 }
